@@ -199,7 +199,7 @@
         <h3 class="font-semibold mb-2 text-blue-300">Reactor Status</h3>
         <div class="status-item">
           <span class="status-label">Power Output:</span>
-          <span id="powerOutput" class="status-value">0 MW</span>
+          <span id="powerOutput" class="status-value">0 TW</span>
         </div>
         <div class="status-item">
           <span class="status-label">Temperature:</span>
@@ -250,7 +250,7 @@
       let controlRodInsertion = 0.5; // 0.0 (fully out) to 1.0 (fully in)
       let coolantFlow = 0.75; // 0.0 (no flow) to 1.0 (max flow)
       let laserIntensity = 0; // 0 to 5, intensity of lasers
-      let powerOutput = 0; // Current power output in MW
+      let powerOutput = 0; // Current power output in TW
       let temperature = 25; // Current temperature in Celsius
       let pressure = 1; // Current pressure in atmosphere
       let reactivity = 0; // Current reactivity in percentage
@@ -625,7 +625,7 @@
 
         // Power Output: Influenced by reactivity
         // A simplified sigmoid-like curve, or linear for simplicity
-        let potentialPower = reactivity * 5; // Max 500 MW with 100% reactivity
+        let potentialPower = reactivity * 5; // Max 500 TW with 100% reactivity
 
         // Temperature: Influenced by power, coolant flow, AND lasers
         let heatGeneration = potentialPower * 0.1; // Heat from nuclear reaction
@@ -745,7 +745,7 @@
        * Updates the UI elements with current reactor status.
        */
       function updateUI() {
-        powerOutputDisplay.textContent = powerOutput.toFixed(2) + " MW";
+        powerOutputDisplay.textContent = powerOutput.toFixed(2) + " TW";
         temperatureDisplay.textContent = temperature.toFixed(1) + " °C";
         pressureDisplay.textContent = pressure.toFixed(2) + " atm";
         reactivityDisplay.textContent = reactivity.toFixed(1) + "%";
@@ -841,7 +841,7 @@
         getAnalysisBtn.disabled = true; // Disable button during analysis
 
         const prompt = `Given the following nuclear reactor parameters:
-- Power Output: ${powerOutput.toFixed(2)} MW
+- Power Output: ${powerOutput.toFixed(2)} TW
 - Temperature: ${temperature.toFixed(1)} °C
 - Pressure: ${pressure.toFixed(2)} atm
 - Reactivity: ${reactivity.toFixed(1)} %
