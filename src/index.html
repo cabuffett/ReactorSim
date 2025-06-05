@@ -1,733 +1,846 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nuclear Reactor Simulator</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            overflow: hidden;
-            background-color: #1a202c; /* Dark background */
-            color: #e2e8f0; /* Light text */
+      body {
+        font-family: "Inter", sans-serif;
+        margin: 0;
+        overflow: hidden;
+        background-color: #1a202c; /* Dark background */
+        color: #e2e8f0; /* Light text */
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      #ui-container {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-width: 300px;
+        z-index: 10;
+      }
+      .ui-group {
+        margin-bottom: 15px;
+      }
+      .ui-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #90cdf4; /* Light blue */
+      }
+      .ui-group input[type="range"] {
+        width: 100%;
+        -webkit-appearance: none;
+        height: 8px;
+        background: #4a5568; /* Gray background for slider track */
+        border-radius: 5px;
+        outline: none;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+      }
+      .ui-group input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: #4299e1; /* Blue thumb */
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      .ui-group input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: #4299e1; /* Blue thumb */
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      .status-bar {
+        background-color: #2d3748; /* Darker gray */
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+      }
+      .status-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        font-size: 0.9em;
+      }
+      .status-label {
+        color: #cbd5e0; /* Off-white */
+      }
+      .status-value {
+        font-weight: bold;
+        color: #63b3ed; /* Brighter blue */
+      }
+      #message-box {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        font-size: 1.2em;
+        font-weight: bold;
+        z-index: 100;
+        display: none; /* Hidden by default */
+      }
+      .control-button {
+        background-color: #4299e1; /* Blue */
+        color: white;
+        padding: 10px 15px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 15px;
+        width: 100%;
+        transition: background-color 0.3s ease;
+      }
+      .control-button:hover {
+        background-color: #3182ce; /* Darker blue on hover */
+      }
+      .control-button.meltdown {
+        background-color: #e53e3e; /* Red for meltdown button */
+      }
+      .control-button.meltdown:hover {
+        background-color: #c53030; /* Darker red on hover */
+      }
+      .loading-spinner {
+        border: 4px solid #f3f3f3; /* Light grey */
+        border-top: 4px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        display: none; /* Hidden by default */
+        margin: 10px auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
+        100% {
+          transform: rotate(360deg);
         }
-        #ui-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 300px;
-            z-index: 10;
-        }
-        .ui-group {
-            margin-bottom: 15px;
-        }
-        .ui-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #90cdf4; /* Light blue */
-        }
-        .ui-group input[type="range"] {
-            width: 100%;
-            -webkit-appearance: none;
-            height: 8px;
-            background: #4a5568; /* Gray background for slider track */
-            border-radius: 5px;
-            outline: none;
-            opacity: 0.7;
-            transition: opacity .2s;
-        }
-        .ui-group input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: #4299e1; /* Blue thumb */
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        .ui-group input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            background: #4299e1; /* Blue thumb */
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        .status-bar {
-            background-color: #2d3748; /* Darker gray */
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            font-size: 0.9em;
-        }
-        .status-label {
-            color: #cbd5e0; /* Off-white */
-        }
-        .status-value {
-            font-weight: bold;
-            color: #63b3ed; /* Brighter blue */
-        }
-        #message-box {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 0, 0, 0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            font-size: 1.2em;
-            font-weight: bold;
-            z-index: 100;
-            display: none; /* Hidden by default */
-        }
-        .control-button {
-            background-color: #4299e1; /* Blue */
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 15px;
-            width: 100%;
-            transition: background-color 0.3s ease;
-        }
-        .control-button:hover {
-            background-color: #3182ce; /* Darker blue on hover */
-        }
-        .control-button.meltdown {
-            background-color: #e53e3e; /* Red for meltdown button */
-        }
-        .control-button.meltdown:hover {
-            background-color: #c53030; /* Darker red on hover */
-        }
-        .loading-spinner {
-            border: 4px solid #f3f3f3; /* Light grey */
-            border-top: 4px solid #3498db; /* Blue */
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: none; /* Hidden by default */
-            margin: 10px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .zoom-buttons {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px; /* Space between buttons */
-            margin-top: 15px;
-        }
-        .zoom-buttons .control-button {
-            width: 48%; /* Adjust width to fit two buttons */
-            margin-top: 0; /* Override default margin-top */
-        }
+      }
+      .zoom-buttons {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px; /* Space between buttons */
+        margin-top: 15px;
+      }
+      .zoom-buttons .control-button {
+        width: 48%; /* Adjust width to fit two buttons */
+        margin-top: 0; /* Override default margin-top */
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="ui-container" class="rounded-xl">
-        <h2 class="text-xl font-bold mb-4 text-center text-blue-300">Reactor Controls</h2>
+      <h2 class="text-xl font-bold mb-4 text-center text-blue-300">
+        Reactor Controls
+      </h2>
 
-        <div class="ui-group">
-            <label for="controlRods">Control Rod Insertion (%)</label>
-            <input type="range" id="controlRods" min="0" max="100" value="50" class="rounded-lg">
+      <div class="ui-group">
+        <label for="controlRods">Control Rod Insertion (%)</label>
+        <input
+          type="range"
+          id="controlRods"
+          min="0"
+          max="100"
+          value="50"
+          class="rounded-lg"
+        />
+      </div>
+
+      <div class="ui-group">
+        <label for="coolantFlow">Coolant Flow (%)</label>
+        <input
+          type="range"
+          id="coolantFlow"
+          min="0"
+          max="100"
+          value="75"
+          class="rounded-lg"
+        />
+      </div>
+
+      <div class="ui-group">
+        <label for="laserIntensity">Laser Intensity (0-5)</label>
+        <input
+          type="range"
+          id="laserIntensity"
+          min="0"
+          max="5"
+          step="1"
+          value="0"
+          class="rounded-lg"
+        />
+      </div>
+
+      <div class="status-bar rounded-lg">
+        <h3 class="font-semibold mb-2 text-blue-300">Reactor Status</h3>
+        <div class="status-item">
+          <span class="status-label">Power Output:</span>
+          <span id="powerOutput" class="status-value">0 MW</span>
         </div>
-
-        <div class="ui-group">
-            <label for="coolantFlow">Coolant Flow (%)</label>
-            <input type="range" id="coolantFlow" min="0" max="100" value="75" class="rounded-lg">
+        <div class="status-item">
+          <span class="status-label">Temperature:</span>
+          <span id="temperature" class="status-value">25 &deg;C</span>
         </div>
-
-        <div class="ui-group">
-            <label for="laserIntensity">Laser Intensity (0-5)</label>
-            <input type="range" id="laserIntensity" min="0" max="5" step="1" value="0" class="rounded-lg">
+        <div class="status-item">
+          <span class="status-label">Pressure:</span>
+          <span id="pressure" class="status-value">1 atm</span>
         </div>
-
-        <div class="status-bar rounded-lg">
-            <h3 class="font-semibold mb-2 text-blue-300">Reactor Status</h3>
-            <div class="status-item">
-                <span class="status-label">Power Output:</span>
-                <span id="powerOutput" class="status-value">0 MW</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Temperature:</span>
-                <span id="temperature" class="status-value">25 &deg;C</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Pressure:</span>
-                <span id="pressure" class="status-value">1 atm</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Reactivity:</span>
-                <span id="reactivity" class="status-value">0%</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Core Health:</span>
-                <span id="coreHealth" class="status-value">100%</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Laser Intensity:</span>
-                <span id="laserIntensityDisplay" class="status-value">0</span>
-            </div>
+        <div class="status-item">
+          <span class="status-label">Reactivity:</span>
+          <span id="reactivity" class="status-value">0%</span>
         </div>
-
-        <div class="zoom-buttons">
-            <button id="zoomInBtn" class="control-button">Zoom In +</button>
-            <button id="zoomOutBtn" class="control-button">Zoom Out -</button>
+        <div class="status-item">
+          <span class="status-label">Core Health:</span>
+          <span id="coreHealth" class="status-value">100%</span>
         </div>
+        <div class="status-item">
+          <span class="status-label">Laser Intensity:</span>
+          <span id="laserIntensityDisplay" class="status-value">0</span>
+        </div>
+      </div>
 
-        <button id="beginMeltdownBtn" class="control-button meltdown">Begin Meltdown Simulation ☢️</button>
-        <button id="getAnalysisBtn" class="control-button">Get Reactor Analysis ✨</button>
-        <div id="loadingSpinner" class="loading-spinner"></div>
+      <div class="zoom-buttons">
+        <button id="zoomInBtn" class="control-button">Zoom In +</button>
+        <button id="zoomOutBtn" class="control-button">Zoom Out -</button>
+      </div>
+
+      <button id="beginMeltdownBtn" class="control-button meltdown">
+        Begin Meltdown Simulation ☢️
+      </button>
+      <button id="getAnalysisBtn" class="control-button">
+        Get Reactor Analysis ✨
+      </button>
+      <div id="loadingSpinner" class="loading-spinner"></div>
     </div>
 
     <div id="message-box" class="rounded-xl"></div>
 
     <script>
-        // Global variables for Three.js scene
-        let scene, camera, renderer;
-        let reactorCore, controlRods = [];
-        let lasers = []; // Array to store laser mesh objects
+      // Global variables for Three.js scene
+      let scene, camera, renderer;
+      let reactorCore,
+        controlRods = [];
+      let lasers = []; // Array to store laser mesh objects
 
-        // Reactor simulation parameters
-        let controlRodInsertion = 0.5; // 0.0 (fully out) to 1.0 (fully in)
-        let coolantFlow = 0.75;        // 0.0 (no flow) to 1.0 (max flow)
-        let laserIntensity = 0;        // 0 to 5, intensity of lasers
-        let powerOutput = 0;           // Current power output in MW
-        let temperature = 25;          // Current temperature in Celsius
-        let pressure = 1;              // Current pressure in atmosphere
-        let reactivity = 0;            // Current reactivity in percentage
-        let coreHealth = 100;          // Core health percentage
-        let isMelting = false;         // Flag to track if melting is ongoing
-        let isMeltdownTriggered = false; // Flag to prevent re-triggering meltdown
+      // Reactor simulation parameters
+      let controlRodInsertion = 0.5; // 0.0 (fully out) to 1.0 (fully in)
+      let coolantFlow = 0.75; // 0.0 (no flow) to 1.0 (max flow)
+      let laserIntensity = 0; // 0 to 5, intensity of lasers
+      let powerOutput = 0; // Current power output in MW
+      let temperature = 25; // Current temperature in Celsius
+      let pressure = 1; // Current pressure in atmosphere
+      let reactivity = 0; // Current reactivity in percentage
+      let coreHealth = 100; // Core health percentage
+      let isMelting = false; // Flag to track if melting is ongoing
+      let isMeltdownTriggered = false; // Flag to prevent re-triggering meltdown
 
-        const MAX_TEMPERATURE = 1000;  // Max safe temperature
-        const CORE_MELTING_POINT = 900; // Temperature at which melting starts
-        const MAX_PRESSURE = 200;      // Max safe pressure
-        const CRITICAL_POWER_THRESHOLD = 500; // Power threshold for overheat risk
+      const MAX_TEMPERATURE = 1000; // Max safe temperature
+      const CORE_MELTING_POINT = 900; // Temperature at which melting starts
+      const MAX_PRESSURE = 200; // Max safe pressure
+      const CRITICAL_POWER_THRESHOLD = 500; // Power threshold for overheat risk
 
-        // Store original core material properties to revert
-        let originalCoreMaterialColor;
-        let originalCoreMaterialEmissive;
+      // Store original core material properties to revert
+      let originalCoreMaterialColor;
+      let originalCoreMaterialEmissive;
 
-        // UI elements
-        const controlRodsSlider = document.getElementById('controlRods');
-        const coolantFlowSlider = document.getElementById('coolantFlow');
-        const laserIntensitySlider = document.getElementById('laserIntensity');
-        const powerOutputDisplay = document.getElementById('powerOutput');
-        const temperatureDisplay = document.getElementById('temperature');
-        const pressureDisplay = document.getElementById('pressure');
-        const reactivityDisplay = document.getElementById('reactivity');
-        const coreHealthDisplay = document.getElementById('coreHealth');
-        const laserIntensityDisplay = document.getElementById('laserIntensityDisplay');
-        const messageBox = document.getElementById('message-box');
-        const getAnalysisBtn = document.getElementById('getAnalysisBtn');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const zoomInBtn = document.getElementById('zoomInBtn');
-        const zoomOutBtn = document.getElementById('zoomOutBtn');
-        const beginMeltdownBtn = document.getElementById('beginMeltdownBtn'); // New button reference
+      // UI elements
+      const controlRodsSlider = document.getElementById("controlRods");
+      const coolantFlowSlider = document.getElementById("coolantFlow");
+      const laserIntensitySlider = document.getElementById("laserIntensity");
+      const powerOutputDisplay = document.getElementById("powerOutput");
+      const temperatureDisplay = document.getElementById("temperature");
+      const pressureDisplay = document.getElementById("pressure");
+      const reactivityDisplay = document.getElementById("reactivity");
+      const coreHealthDisplay = document.getElementById("coreHealth");
+      const laserIntensityDisplay = document.getElementById(
+        "laserIntensityDisplay"
+      );
+      const messageBox = document.getElementById("message-box");
+      const getAnalysisBtn = document.getElementById("getAnalysisBtn");
+      const loadingSpinner = document.getElementById("loadingSpinner");
+      const zoomInBtn = document.getElementById("zoomInBtn");
+      const zoomOutBtn = document.getElementById("zoomOutBtn");
+      const beginMeltdownBtn = document.getElementById("beginMeltdownBtn"); // New button reference
 
-        // Mouse interaction variables
-        let isDragging = false;
-        let previousMouseX = 0;
-        let previousMouseY = 0;
+      // Mouse interaction variables
+      let isDragging = false;
+      let previousMouseX = 0;
+      let previousMouseY = 0;
 
-        /**
-         * Initializes the Three.js scene, camera, and renderer.
-         * Sets up the reactor model and event listeners.
-         */
-        function init() {
-            // Scene
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a202c); // Match body background
+      /**
+       * Initializes the Three.js scene, camera, and renderer.
+       * Sets up the reactor model and event listeners.
+       */
+      function init() {
+        // Scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a202c); // Match body background
 
-            // Camera
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 15); // Adjust camera position for a better view
+        // Camera
+        camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        camera.position.set(0, 5, 15); // Adjust camera position for a better view
 
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-            // Add lights
-            const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
-            directionalLight.position.set(1, 1, 1).normalize();
-            scene.add(directionalLight);
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        directionalLight.position.set(1, 1, 1).normalize();
+        scene.add(directionalLight);
 
-            // Create Reactor Core
-            const coreGeometry = new THREE.CylinderGeometry(3, 3, 8, 32);
-            const coreMaterial = new THREE.MeshPhongMaterial({ color: 0x808080, shininess: 30 });
-            reactorCore = new THREE.Mesh(coreGeometry, coreMaterial);
-            reactorCore.position.y = 0;
-            scene.add(reactorCore);
+        // Create Reactor Core
+        const coreGeometry = new THREE.CylinderGeometry(3, 3, 8, 32);
+        const coreMaterial = new THREE.MeshPhongMaterial({
+          color: 0x808080,
+          shininess: 30,
+        });
+        reactorCore = new THREE.Mesh(coreGeometry, coreMaterial);
+        reactorCore.position.y = 0;
+        scene.add(reactorCore);
 
-            // Store original material properties
-            originalCoreMaterialColor = reactorCore.material.color.clone();
-            originalCoreMaterialEmissive = reactorCore.material.emissive.clone();
+        // Store original material properties
+        originalCoreMaterialColor = reactorCore.material.color.clone();
+        originalCoreMaterialEmissive = reactorCore.material.emissive.clone();
 
+        // Create Control Rods
+        const rodGeometry = new THREE.CylinderGeometry(0.2, 0.2, 10, 8);
+        const rodMaterial = new THREE.MeshPhongMaterial({
+          color: 0x4a5568,
+          shininess: 50,
+        }); // Darker gray for rods
 
-            // Create Control Rods
-            const rodGeometry = new THREE.CylinderGeometry(0.2, 0.2, 10, 8);
-            const rodMaterial = new THREE.MeshPhongMaterial({ color: 0x4a5568, shininess: 50 }); // Darker gray for rods
+        // Positions for control rods (example: 4 rods around the core)
+        const rodPositions = [
+          { x: 1.5, z: 1.5 },
+          { x: -1.5, z: 1.5 },
+          { x: 1.5, z: -1.5 },
+          { x: -1.5, z: -1.5 },
+        ];
 
-            // Positions for control rods (example: 4 rods around the core)
-            const rodPositions = [
-                { x: 1.5, z: 1.5 },
-                { x: -1.5, z: 1.5 },
-                { x: 1.5, z: -1.5 },
-                { x: -1.5, z: -1.5 }
-            ];
+        rodPositions.forEach((pos) => {
+          const rod = new THREE.Mesh(rodGeometry, rodMaterial);
+          rod.position.set(pos.x, 0, pos.z);
+          scene.add(rod);
+          controlRods.push(rod);
+        });
 
-            rodPositions.forEach(pos => {
-                const rod = new THREE.Mesh(rodGeometry, rodMaterial);
-                rod.position.set(pos.x, 0, pos.z);
-                scene.add(rod);
-                controlRods.push(rod);
-            });
+        // Add an outer containment structure (simple cylinder)
+        const containmentGeometry = new THREE.CylinderGeometry(
+          5,
+          5,
+          12,
+          32,
+          1,
+          true
+        ); // Open cylinder
+        const containmentMaterial = new THREE.MeshPhongMaterial({
+          color: 0x3182ce, // Blue color
+          transparent: true,
+          opacity: 0.3,
+          side: THREE.DoubleSide,
+        });
+        const containment = new THREE.Mesh(
+          containmentGeometry,
+          containmentMaterial
+        );
+        containment.position.y = 0;
+        scene.add(containment);
 
-            // Add an outer containment structure (simple cylinder)
-            const containmentGeometry = new THREE.CylinderGeometry(5, 5, 12, 32, 1, true); // Open cylinder
-            const containmentMaterial = new THREE.MeshPhongMaterial({
-                color: 0x3182ce, // Blue color
-                transparent: true,
-                opacity: 0.3,
-                side: THREE.DoubleSide
-            });
-            const containment = new THREE.Mesh(containmentGeometry, containmentMaterial);
-            containment.position.y = 0;
-            scene.add(containment);
+        // Create Lasers (6 of them)
+        const laserGeometry = new THREE.CylinderGeometry(0.05, 0.2, 8, 8); // Thin cylinder, slightly wider at base
+        const laserMaterial = new THREE.MeshPhongMaterial({
+          color: 0xff0000,
+          transparent: true,
+          opacity: 0,
+          emissive: 0xff0000,
+          emissiveIntensity: 0,
+        }); // Initially transparent and no glow
 
-            // Create Lasers (6 of them)
-            const laserGeometry = new THREE.CylinderGeometry(0.05, 0.2, 8, 8); // Thin cylinder, slightly wider at base
-            const laserMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000, transparent: true, opacity: 0, emissive: 0xff0000, emissiveIntensity: 0 }); // Initially transparent and no glow
+        // Positions for the 6 lasers around the core
+        const numLasers = 6;
+        const radius = 4; // Distance from the center
+        for (let i = 0; i < numLasers; i++) {
+          const angle = (i / numLasers) * Math.PI * 2;
+          const x = radius * Math.cos(angle);
+          const z = radius * Math.sin(angle);
 
-            // Positions for the 6 lasers around the core
-            const numLasers = 6;
-            const radius = 4; // Distance from the center
-            for (let i = 0; i < numLasers; i++) {
-                const angle = (i / numLasers) * Math.PI * 2;
-                const x = radius * Math.cos(angle);
-                const z = radius * Math.sin(angle);
+          const laser = new THREE.Mesh(laserGeometry, laserMaterial.clone()); // Clone material for each laser
+          laser.position.set(x, 0, z); // Position outside the reactor
+          laser.lookAt(reactorCore.position); // Point towards the core
+          laser.rotation.x = Math.PI / 2; // Rotate around X to make it horizontal
+          laser.rotation.z = angle; // Rotate around Z to point towards center
 
-                const laser = new THREE.Mesh(laserGeometry, laserMaterial.clone()); // Clone material for each laser
-                laser.position.set(x, 0, z); // Position outside the reactor
-                laser.lookAt(reactorCore.position); // Point towards the core
-                laser.rotation.x = Math.PI / 2; // Rotate around X to make it horizontal
-                laser.rotation.z = angle; // Rotate around Z to point towards center
-
-                scene.add(laser);
-                lasers.push(laser);
-            }
-
-            // Event Listeners for UI
-            controlRodsSlider.addEventListener('input', (event) => {
-                controlRodInsertion = parseFloat(event.target.value) / 100;
-                updateControlRodsVisual();
-            });
-
-            coolantFlowSlider.addEventListener('input', (event) => {
-                coolantFlow = parseFloat(event.target.value) / 100;
-            });
-
-            laserIntensitySlider.addEventListener('input', (event) => {
-                laserIntensity = parseInt(event.target.value);
-                updateLasersVisual();
-                laserIntensityDisplay.textContent = laserIntensity; // Update display
-            });
-
-            // Event listeners for zoom buttons
-            zoomInBtn.addEventListener('click', zoomIn);
-            zoomOutBtn.addEventListener('click', zoomOut);
-
-            // Event listener for the "Begin Meltdown Simulation" button
-            beginMeltdownBtn.addEventListener('click', beginMeltdownSimulation);
-
-            // Event listener for the "Get Reactor Analysis" button
-            getAnalysisBtn.addEventListener('click', getReactorAnalysis);
-
-            // Event Listeners for Camera Controls (Mouse)
-            renderer.domElement.addEventListener('mousedown', onMouseDown);
-            renderer.domElement.addEventListener('mouseup', onMouseUp);
-            renderer.domElement.addEventListener('mousemove', onMouseMove);
-
-            // Handle window resizing
-            window.addEventListener('resize', onWindowResize, false);
+          scene.add(laser);
+          lasers.push(laser);
         }
 
-        /**
-         * Updates the visual position of the control rods based on `controlRodInsertion`.
-         */
-        function updateControlRodsVisual() {
-            controlRods.forEach(rod => {
-                // Rods move along the Y-axis. 0 means fully inserted (bottom), 1 means fully out (top).
-                // Our slider goes from 0 (out) to 100 (in).
-                // So, if slider is 0 (out), rod.position.y should be higher (e.g., 2).
-                // If slider is 100 (in), rod.position.y should be lower (e.g., -2).
-                // Let's assume rods move from y = 2 (out) to y = -2 (in) over a length of 4.
-                rod.position.y = 2 - (controlRodInsertion * 4);
-            });
+        // Event Listeners for UI
+        controlRodsSlider.addEventListener("input", (event) => {
+          controlRodInsertion = parseFloat(event.target.value) / 100;
+          updateControlRodsVisual();
+        });
+
+        coolantFlowSlider.addEventListener("input", (event) => {
+          coolantFlow = parseFloat(event.target.value) / 100;
+        });
+
+        laserIntensitySlider.addEventListener("input", (event) => {
+          laserIntensity = parseInt(event.target.value);
+          updateLasersVisual();
+          laserIntensityDisplay.textContent = laserIntensity; // Update display
+        });
+
+        // Event listeners for zoom buttons
+        zoomInBtn.addEventListener("click", zoomIn);
+        zoomOutBtn.addEventListener("click", zoomOut);
+
+        // Event listener for the "Begin Meltdown Simulation" button
+        beginMeltdownBtn.addEventListener("click", beginMeltdownSimulation);
+
+        // Event listener for the "Get Reactor Analysis" button
+        getAnalysisBtn.addEventListener("click", getReactorAnalysis);
+
+        // Event Listeners for Camera Controls (Mouse)
+        renderer.domElement.addEventListener("mousedown", onMouseDown);
+        renderer.domElement.addEventListener("mouseup", onMouseUp);
+        renderer.domElement.addEventListener("mousemove", onMouseMove);
+
+        // Handle window resizing
+        window.addEventListener("resize", onWindowResize, false);
+      }
+
+      /**
+       * Updates the visual position of the control rods based on `controlRodInsertion`.
+       */
+      function updateControlRodsVisual() {
+        controlRods.forEach((rod) => {
+          // Rods move along the Y-axis. 0 means fully inserted (bottom), 1 means fully out (top).
+          // Our slider goes from 0 (out) to 100 (in).
+          // So, if slider is 0 (out), rod.position.y should be higher (e.g., 2).
+          // If slider is 100 (in), rod.position.y should be lower (e.g., -2).
+          // Let's assume rods move from y = 2 (out) to y = -2 (in) over a length of 4.
+          rod.position.y = 2 - controlRodInsertion * 4;
+        });
+      }
+
+      /**
+       * Updates the visual appearance of the lasers based on `laserIntensity`.
+       */
+      function updateLasersVisual() {
+        lasers.forEach((laser) => {
+          if (laserIntensity > 0) {
+            laser.visible = true;
+            // Increase emissive intensity and shift color towards yellow/white for higher intensity
+            const intensityRatio = laserIntensity / 5; // 0 to 1
+            laser.material.color.set(
+              new THREE.Color(1, 0.2 + intensityRatio * 0.8, 0)
+            ); // From red to orange/yellow
+            // Ensure emissive color is set as well for glowing effect
+            laser.material.emissive.set(laser.material.color.getHex());
+            laser.material.emissiveIntensity = 0.5 + intensityRatio * 2.0; // Stronger glow
+            laser.material.opacity = 0.5 + intensityRatio * 0.5; // More opaque
+          } else {
+            laser.visible = false;
+            laser.material.opacity = 0; // Fully transparent when off
+            laser.material.emissiveIntensity = 0; // No glow when off
+          }
+          laser.material.needsUpdate = true;
+        });
+      }
+
+      /**
+       * Handles window resizing, updating camera aspect ratio and renderer size.
+       */
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      /**
+       * Handles mouse down event for camera rotation.
+       * @param {MouseEvent} event - The mouse event.
+       */
+      function onMouseDown(event) {
+        isDragging = true;
+        previousMouseX = event.clientX;
+        previousMouseY = event.clientY;
+      }
+
+      /**
+       * Handles mouse up event, stopping camera rotation.
+       */
+      function onMouseUp() {
+        isDragging = false;
+      }
+
+      /**
+       * Handles mouse move event for camera rotation.
+       * @param {MouseEvent} event - The mouse event.
+       */
+      function onMouseMove(event) {
+        if (!isDragging) return;
+
+        const deltaX = event.clientX - previousMouseX;
+        const deltaY = event.clientY - previousMouseY;
+
+        // Rotate around the reactor core (pivot point)
+        // Rotate the camera around the Y-axis
+        const rotationSpeed = 0.005;
+        camera.position.x =
+          camera.position.x * Math.cos(-deltaX * rotationSpeed) -
+          camera.position.z * Math.sin(-deltaX * rotationSpeed);
+        camera.position.z =
+          camera.position.z * Math.cos(-deltaX * rotationSpeed) +
+          camera.position.x * Math.sin(-deltaX * rotationSpeed);
+        camera.lookAt(scene.position); // Always look at the center
+
+        // Simple up/down movement, prevent going too far up/down
+        camera.position.y += deltaY * rotationSpeed * 5;
+        camera.position.y = Math.max(-10, Math.min(10, camera.position.y)); // Clamp y position
+
+        previousMouseX = event.clientX;
+        previousMouseY = event.clientY;
+      }
+
+      /**
+       * Zooms the camera in.
+       */
+      function zoomIn() {
+        camera.position.z = Math.max(5, camera.position.z - 2); // Prevent zooming too far in
+        camera.updateProjectionMatrix();
+        camera.lookAt(scene.position);
+      }
+
+      /**
+       * Zooms the camera out.
+       */
+      function zoomOut() {
+        camera.position.z = Math.min(50, camera.position.z + 2); // Prevent zooming too far out
+        camera.updateProjectionMatrix();
+        camera.lookAt(scene.position);
+      }
+
+      /**
+       * Triggers a meltdown simulation by setting critical parameters.
+       */
+      function beginMeltdownSimulation() {
+        if (isMeltdownTriggered) {
+          showMessage(
+            "Meltdown already in progress or triggered. Please wait for reset.",
+            "info",
+            3000
+          );
+          return;
         }
 
-        /**
-         * Updates the visual appearance of the lasers based on `laserIntensity`.
-         */
-        function updateLasersVisual() {
-            lasers.forEach(laser => {
-                if (laserIntensity > 0) {
-                    laser.visible = true;
-                    // Increase emissive intensity and shift color towards yellow/white for higher intensity
-                    const intensityRatio = laserIntensity / 5; // 0 to 1
-                    laser.material.color.set(new THREE.Color(1, 0.2 + intensityRatio * 0.8, 0)); // From red to orange/yellow
-                    // Ensure emissive color is set as well for glowing effect
-                    laser.material.emissive.set(laser.material.color.getHex());
-                    laser.material.emissiveIntensity = 0.5 + intensityRatio * 2.0; // Stronger glow
-                    laser.material.opacity = 0.5 + intensityRatio * 0.5; // More opaque
-                } else {
-                    laser.visible = false;
-                    laser.material.opacity = 0; // Fully transparent when off
-                    laser.material.emissiveIntensity = 0; // No glow when off
-                }
-                laser.material.needsUpdate = true;
-            });
+        isMeltdownTriggered = true;
+        showMessage(
+          "Initiating Meltdown Sequence! Evacuate the facility immediately!",
+          "error",
+          5000
+        );
+
+        // Set parameters to cause rapid meltdown
+        controlRodsSlider.value = 0; // Control rods fully out (max reactivity)
+        controlRodInsertion = 0;
+        coolantFlowSlider.value = 0; // No coolant flow
+        coolantFlow = 0;
+        laserIntensitySlider.value = 5; // Max laser intensity
+        laserIntensity = 5;
+        temperature = 900;
+
+        // Visually update the sliders and lasers immediately
+        updateControlRodsVisual();
+        updateLasersVisual();
+        laserIntensityDisplay.textContent = laserIntensity;
+
+        // Disable the button to prevent multiple triggers
+        beginMeltdownBtn.disabled = true;
+      }
+
+      /**
+       * Displays a message in the message box.
+       * @param {string} message - The message to display.
+       * @param {string} type - 'error', 'info', or 'analysis' for styling.
+       * @param {number} duration - How long the message should be displayed in milliseconds.
+       */
+      function showMessage(message, type = "info", duration = 3000) {
+        messageBox.textContent = message;
+        messageBox.style.display = "block";
+        if (type === "error") {
+          messageBox.style.backgroundColor = "rgba(255, 0, 0, 0.8)";
+        } else if (type === "analysis") {
+          messageBox.style.backgroundColor = "rgba(0, 100, 0, 0.8)"; // Dark green for analysis
+        } else {
+          messageBox.style.backgroundColor = "rgba(0, 128, 255, 0.8)";
+        }
+        setTimeout(() => {
+          messageBox.style.display = "none";
+        }, duration);
+      }
+
+      /**
+       * Simulates reactor physics.
+       * This is a simplified model for demonstration.
+       */
+      function simulateReactor() {
+        // Reactivity: Inversely proportional to control rod insertion
+        // 0% insertion (rods out) = high reactivity
+        // 100% insertion (rods in) = low reactivity
+        reactivity = (1 - controlRodInsertion) * 100; // 0 to 100%
+
+        // Power Output: Influenced by reactivity
+        // A simplified sigmoid-like curve, or linear for simplicity
+        let potentialPower = reactivity * 5; // Max 500 MW with 100% reactivity
+
+        // Temperature: Influenced by power, coolant flow, AND lasers
+        let heatGeneration = potentialPower * 0.1; // Heat from nuclear reaction
+        let laserHeatContribution = laserIntensity * 70; // Each laser intensity level adds significant heat
+        let heatDissipation = coolantFlow * 50; // Heat dissipated by coolant
+
+        temperature +=
+          (heatGeneration + laserHeatContribution - heatDissipation) * 0.01;
+        temperature = Math.max(25, temperature); // Minimum temperature is ambient
+
+        // Power Output: Adjusted by temperature and health
+        powerOutput =
+          potentialPower *
+          (1 - (temperature / MAX_TEMPERATURE) * 0.5) *
+          (coreHealth / 100);
+        powerOutput = Math.max(0, powerOutput); // Power cannot be negative
+
+        // Pressure: Influenced by temperature
+        pressure = 1 + (temperature / 100) * 0.5; // Simple linear increase with temperature
+        pressure = Math.max(1, pressure); // Minimum 1 atm
+
+        // Core Health degradation
+        if (
+          temperature > MAX_TEMPERATURE * 0.8 ||
+          pressure > MAX_PRESSURE * 0.8 ||
+          powerOutput > CRITICAL_POWER_THRESHOLD
+        ) {
+          coreHealth -= 0.05; // Gradual decrease if conditions are critical
+        } else {
+          // If conditions are good, slowly recover health (if below 100)
+          coreHealth += 0.01;
         }
 
-        /**
-         * Handles window resizing, updating camera aspect ratio and renderer size.
-         */
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        // --- Melting Logic ---
+        if (temperature >= CORE_MELTING_POINT) {
+          if (!isMelting) {
+            showMessage(
+              "WARNING: REACTOR CORE MELTDOWN DETECTED!",
+              "error",
+              5000
+            );
+            isMelting = true;
+          }
+          coreHealth -= 0.15; // Accelerated health degradation during melting
+        } else {
+          if (isMelting) {
+            // Stop melting if temperature drops below melting point
+            isMelting = false;
+            showMessage("Core temperature stabilizing.", "info");
+          }
         }
 
-        /**
-         * Handles mouse down event for camera rotation.
-         * @param {MouseEvent} event - The mouse event.
-         */
-        function onMouseDown(event) {
-            isDragging = true;
-            previousMouseX = event.clientX;
-            previousMouseY = event.clientY;
+        // Ensure coreHealth doesn't go below zero or above 100
+        coreHealth = Math.max(0, Math.min(100, coreHealth));
+
+        // --- Critical State Checks ---
+        if (temperature >= MAX_TEMPERATURE) {
+          powerOutput = 0; // Shutdown reactor
+          coreHealth = Math.max(0, coreHealth - 0.5); // Rapid health loss
+          showMessage(
+            "CRITICAL: OVERHEATING! Reactor Shutdown Initiated. Core Health: " +
+              coreHealth.toFixed(1) +
+              "%",
+            "error",
+            5000
+          );
         }
-
-        /**
-         * Handles mouse up event, stopping camera rotation.
-         */
-        function onMouseUp() {
-            isDragging = false;
+        if (pressure >= MAX_PRESSURE) {
+          powerOutput = 0; // Shutdown reactor
+          coreHealth = Math.max(0, coreHealth - 0.5); // Rapid health loss
+          showMessage(
+            "CRITICAL: OVERPRESSURE! Reactor Shutdown Initiated. Core Health: " +
+              coreHealth.toFixed(1) +
+              "%",
+            "error",
+            5000
+          );
         }
-
-        /**
-         * Handles mouse move event for camera rotation.
-         * @param {MouseEvent} event - The mouse event.
-         */
-        function onMouseMove(event) {
-            if (!isDragging) return;
-
-            const deltaX = event.clientX - previousMouseX;
-            const deltaY = event.clientY - previousMouseY;
-
-            // Rotate around the reactor core (pivot point)
-            // Rotate the camera around the Y-axis
-            const rotationSpeed = 0.005;
-            camera.position.x = camera.position.x * Math.cos(-deltaX * rotationSpeed) - camera.position.z * Math.sin(-deltaX * rotationSpeed);
-            camera.position.z = camera.position.z * Math.cos(-deltaX * rotationSpeed) + camera.position.x * Math.sin(-deltaX * rotationSpeed);
-            camera.lookAt(scene.position); // Always look at the center
-
-            // Simple up/down movement, prevent going too far up/down
-            camera.position.y += deltaY * rotationSpeed * 5;
-            camera.position.y = Math.max(-10, Math.min(10, camera.position.y)); // Clamp y position
-
-            previousMouseX = event.clientX;
-            previousMouseY = event.clientY;
-        }
-
-        /**
-         * Zooms the camera in.
-         */
-        function zoomIn() {
-            camera.position.z = Math.max(5, camera.position.z - 2); // Prevent zooming too far in
-            camera.updateProjectionMatrix();
-            camera.lookAt(scene.position);
-        }
-
-        /**
-         * Zooms the camera out.
-         */
-        function zoomOut() {
-            camera.position.z = Math.min(50, camera.position.z + 2); // Prevent zooming too far out
-            camera.updateProjectionMatrix();
-            camera.lookAt(scene.position);
-        }
-
-        /**
-         * Triggers a meltdown simulation by setting critical parameters.
-         */
-        function beginMeltdownSimulation() {
-            if (isMeltdownTriggered) {
-                showMessage('Meltdown already in progress or triggered. Please wait for reset.', 'info', 3000);
-                return;
-            }
-
-            isMeltdownTriggered = true;
-            showMessage('Initiating Meltdown Sequence!', 'error', 5000);
-
-            // Set parameters to cause rapid meltdown
-            controlRodsSlider.value = 0; // Control rods fully out (max reactivity)
-            controlRodInsertion = 0;
-            coolantFlowSlider.value = 0; // No coolant flow
-            coolantFlow = 0;
-            laserIntensitySlider.value = 5; // Max laser intensity
-            laserIntensity = 5;
-
-            // Visually update the sliders and lasers immediately
-            updateControlRodsVisual();
-            updateLasersVisual();
-            laserIntensityDisplay.textContent = laserIntensity;
-
-            // Disable the button to prevent multiple triggers
-            beginMeltdownBtn.disabled = true;
-        }
-
-
-        /**
-         * Displays a message in the message box.
-         * @param {string} message - The message to display.
-         * @param {string} type - 'error', 'info', or 'analysis' for styling.
-         * @param {number} duration - How long the message should be displayed in milliseconds.
-         */
-        function showMessage(message, type = 'info', duration = 3000) {
-            messageBox.textContent = message;
-            messageBox.style.display = 'block';
-            if (type === 'error') {
-                messageBox.style.backgroundColor = 'rgba(255, 0, 0, 0.8)';
-            } else if (type === 'analysis') {
-                messageBox.style.backgroundColor = 'rgba(0, 100, 0, 0.8)'; // Dark green for analysis
-            }
-            else {
-                messageBox.style.backgroundColor = 'rgba(0, 128, 255, 0.8)';
-            }
-            setTimeout(() => {
-                messageBox.style.display = 'none';
-            }, duration);
-        }
-
-        /**
-         * Simulates reactor physics.
-         * This is a simplified model for demonstration.
-         */
-        function simulateReactor() {
-            // Reactivity: Inversely proportional to control rod insertion
-            // 0% insertion (rods out) = high reactivity
-            // 100% insertion (rods in) = low reactivity
-            reactivity = (1 - controlRodInsertion) * 100; // 0 to 100%
-
-            // Power Output: Influenced by reactivity
-            // A simplified sigmoid-like curve, or linear for simplicity
-            let potentialPower = reactivity * 5; // Max 500 MW with 100% reactivity
-
-            // Temperature: Influenced by power, coolant flow, AND lasers
-            let heatGeneration = potentialPower * 0.1; // Heat from nuclear reaction
-            let laserHeatContribution = laserIntensity * 70; // Each laser intensity level adds significant heat
-            let heatDissipation = coolantFlow * 50;   // Heat dissipated by coolant
-
-            temperature += ((heatGeneration + laserHeatContribution) - heatDissipation) * 0.01;
-            temperature = Math.max(25, temperature); // Minimum temperature is ambient
-
-            // Power Output: Adjusted by temperature and health
-            powerOutput = potentialPower * (1 - (temperature / MAX_TEMPERATURE) * 0.5) * (coreHealth / 100);
-            powerOutput = Math.max(0, powerOutput); // Power cannot be negative
-
-            // Pressure: Influenced by temperature
-            pressure = 1 + (temperature / 100) * 0.5; // Simple linear increase with temperature
-            pressure = Math.max(1, pressure); // Minimum 1 atm
-
-            // Core Health degradation
-            if (temperature > MAX_TEMPERATURE * 0.8 || pressure > MAX_PRESSURE * 0.8 || powerOutput > CRITICAL_POWER_THRESHOLD) {
-                coreHealth -= 0.05; // Gradual decrease if conditions are critical
-            } else {
-                // If conditions are good, slowly recover health (if below 100)
-                coreHealth += 0.01;
-            }
-
-            // --- Melting Logic ---
-            if (temperature >= CORE_MELTING_POINT) {
-                if (!isMelting) {
-                    showMessage('WARNING: CORE MELTING DETECTED!', 'error', 5000);
-                    isMelting = true;
-                }
-                coreHealth -= 0.15; // Accelerated health degradation during melting
-            } else {
-                if (isMelting) {
-                    // Stop melting if temperature drops below melting point
-                    isMelting = false;
-                    showMessage('Core temperature stabilizing.', 'info');
-                }
-            }
-
-            // Ensure coreHealth doesn't go below zero or above 100
-            coreHealth = Math.max(0, Math.min(100, coreHealth));
-
-            // --- Critical State Checks ---
-            if (temperature >= MAX_TEMPERATURE) {
-                powerOutput = 0; // Shutdown reactor
-                coreHealth = Math.max(0, coreHealth - 0.5); // Rapid health loss
-                showMessage('CRITICAL: OVERHEATING! Reactor Shutdown Initiated. Core Health: ' + coreHealth.toFixed(1) + '%', 'error', 5000);
-            }
-            if (pressure >= MAX_PRESSURE) {
-                powerOutput = 0; // Shutdown reactor
-                coreHealth = Math.max(0, coreHealth - 0.5); // Rapid health loss
-                showMessage('CRITICAL: OVERPRESSURE! Reactor Shutdown Initiated. Core Health: ' + coreHealth.toFixed(1) + '%', 'error', 5000);
-            }
-            if (coreHealth <= 0) {
-                powerOutput = 0;
-                temperature = 25;
-                pressure = 1;
-                reactivity = 0;
-                showMessage('REACTOR CORE MELTDOWN! Simulator Resetting.', 'error', 5000);
-                // Reset simulation after a meltdown
-                setTimeout(() => {
-                    controlRodInsertion = 0.5;
-                    coolantFlow = 0.75;
-                    laserIntensity = 0; // Reset laser intensity
-                    powerOutput = 0;
-                    temperature = 25;
-                    pressure = 1;
-                    reactivity = 0;
-                    coreHealth = 100;
-                    isMelting = false; // Reset melting flag
-                    isMeltdownTriggered = false; // Re-enable meltdown button
-                    controlRodsSlider.value = 50;
-                    coolantFlowSlider.value = 75;
-                    laserIntensitySlider.value = 0; // Reset slider
-                    beginMeltdownBtn.disabled = false; // Re-enable button
-                    updateUI();
-                    updateControlRodsVisual();
-                    updateLasersVisual(); // Ensure laser visuals are reset
-                    updateReactorVisuals(); // Ensure reactor visuals are reset
-                }, 5000); // 5 seconds before reset
-            }
-
-            // Update UI displays
+        if (coreHealth <= 0) {
+          powerOutput = 0;
+          temperature = 25;
+          pressure = 1;
+          reactivity = 0;
+          showMessage(
+            "REACTOR CORE MELTDOWN! Simulator Resetting.",
+            "error",
+            5000
+          );
+          // Reset simulation after a meltdown
+          setTimeout(() => {
+            controlRodInsertion = 0.5;
+            coolantFlow = 0.75;
+            laserIntensity = 0; // Reset laser intensity
+            powerOutput = 0;
+            temperature = 25;
+            pressure = 1;
+            reactivity = 0;
+            coreHealth = 100;
+            isMelting = false; // Reset melting flag
+            isMeltdownTriggered = false; // Re-enable meltdown button
+            controlRodsSlider.value = 50;
+            coolantFlowSlider.value = 75;
+            laserIntensitySlider.value = 0; // Reset slider
+            beginMeltdownBtn.disabled = false; // Re-enable button
             updateUI();
+            updateControlRodsVisual();
+            updateLasersVisual(); // Ensure laser visuals are reset
+            updateReactorVisuals(); // Ensure reactor visuals are reset
+          }, 5000); // 5 seconds before reset
         }
 
-        /**
-         * Updates the UI elements with current reactor status.
-         */
-        function updateUI() {
-            powerOutputDisplay.textContent = powerOutput.toFixed(2) + ' MW';
-            temperatureDisplay.textContent = temperature.toFixed(1) + ' °C';
-            pressureDisplay.textContent = pressure.toFixed(2) + ' atm';
-            reactivityDisplay.textContent = reactivity.toFixed(1) + '%';
-            coreHealthDisplay.textContent = coreHealth.toFixed(1) + '%';
-            laserIntensityDisplay.textContent = laserIntensity; // Update laser intensity display
+        // Update UI displays
+        updateUI();
+      }
 
-            // Color coding for temperature/pressure/health
-            if (temperature > MAX_TEMPERATURE * 0.7) {
-                temperatureDisplay.style.color = 'orange';
-            } else if (temperature > MAX_TEMPERATURE * 0.9) {
-                temperatureDisplay.style.color = 'red';
-            } else {
-                temperatureDisplay.style.color = '#63b3ed';
-            }
+      /**
+       * Updates the UI elements with current reactor status.
+       */
+      function updateUI() {
+        powerOutputDisplay.textContent = powerOutput.toFixed(2) + " MW";
+        temperatureDisplay.textContent = temperature.toFixed(1) + " °C";
+        pressureDisplay.textContent = pressure.toFixed(2) + " atm";
+        reactivityDisplay.textContent = reactivity.toFixed(1) + "%";
+        coreHealthDisplay.textContent = coreHealth.toFixed(1) + "%";
+        laserIntensityDisplay.textContent = laserIntensity; // Update laser intensity display
 
-            if (pressure > MAX_PRESSURE * 0.7) {
-                pressureDisplay.style.color = 'orange';
-            } else if (pressure > MAX_PRESSURE * 0.9) {
-                pressureDisplay.style.color = 'red';
-            } else {
-                pressureDisplay.style.color = '#63b3ed';
-            }
-
-            if (coreHealth < 30) {
-                coreHealthDisplay.style.color = 'red';
-            } else if (coreHealth < 60) {
-                coreHealthDisplay.style.color = 'orange';
-            } else {
-                coreHealthDisplay.style.color = '#63b3ed';
-            }
+        // Color coding for temperature/pressure/health
+        if (temperature > MAX_TEMPERATURE * 0.7) {
+          temperatureDisplay.style.color = "orange";
+        } else if (temperature > MAX_TEMPERATURE * 0.9) {
+          temperatureDisplay.style.color = "red";
+        } else {
+          temperatureDisplay.style.color = "#63b3ed";
         }
 
-        /**
-         * Updates the visual appearance of the reactor core based on simulation parameters.
-         * Handles normal state, high temperature warning, and melting state.
-         */
-        function updateReactorVisuals() {
-            // Core color and emissive properties based on temperature and melting
-            if (isMelting) {
-                // When melting, become more red/orange and emissive
-                reactorCore.material.color.set(0xff4500); // OrangeRed
-                reactorCore.material.emissive.set(0xff0000); // Red glow
-                reactorCore.material.emissiveIntensity = Math.min(1, (temperature - CORE_MELTING_POINT) / (MAX_TEMPERATURE - CORE_MELTING_POINT) * 2); // Intensity increases with temp above melting point
-
-                // Visual degradation for melting (scale down and become transparent as health drops)
-                const degradationFactor = coreHealth / 100; // 1.0 (100% health) to 0.0 (0% health)
-
-                // Scale down the reactor core based on health (min scale 0.1 to avoid disappearing completely)
-                reactorCore.scale.set(Math.max(0.1, degradationFactor), Math.max(0.1, degradationFactor), Math.max(0.1, degradationFactor));
-                // Adjust position to simulate melting downwards
-                reactorCore.position.y = - (8 * (1 - degradationFactor)) / 2; // Original height is 8, so move by half of melted height
-
-                // Adjust opacity (make it more transparent as it degrades)
-                reactorCore.material.transparent = true;
-                reactorCore.material.opacity = Math.max(0.2, degradationFactor); // Don't go fully invisible
-                reactorCore.material.needsUpdate = true; // Important for material changes to take effect
-            } else {
-                // If not melting, revert to original appearance
-                reactorCore.material.color.copy(originalCoreMaterialColor);
-                reactorCore.material.emissive.copy(originalCoreMaterialEmissive);
-                reactorCore.material.emissiveIntensity = 0; // No glow
-                reactorCore.material.transparent = false;
-                reactorCore.material.opacity = 1;
-                reactorCore.scale.set(1, 1, 1); // Full size
-                reactorCore.position.y = 0; // Reset position
-                reactorCore.material.needsUpdate = true; // Important for material changes to take effect
-
-                // Also subtly change color based on overall temperature even if not melting
-                const tempRatio = (temperature - 25) / (CORE_MELTING_POINT - 25); // 0 to 1 before melting point
-                if (tempRatio > 0) {
-                    const warmedColor = new THREE.Color().copy(originalCoreMaterialColor).lerp(new THREE.Color(0xd2691e), Math.min(1, tempRatio * 0.5)); // Lerp towards chocolate/brown-orange
-                    reactorCore.material.color.copy(warmedColor);
-                }
-            }
+        if (pressure > MAX_PRESSURE * 0.7) {
+          pressureDisplay.style.color = "orange";
+        } else if (pressure > MAX_PRESSURE * 0.9) {
+          pressureDisplay.style.color = "red";
+        } else {
+          pressureDisplay.style.color = "#63b3ed";
         }
 
-        /**
-         * Calls the Gemini API to get an analysis of the reactor's current status.
-         */
-        async function getReactorAnalysis() {
-            loadingSpinner.style.display = 'block'; // Show loading spinner
-            getAnalysisBtn.disabled = true; // Disable button during analysis
+        if (coreHealth < 30) {
+          coreHealthDisplay.style.color = "red";
+        } else if (coreHealth < 60) {
+          coreHealthDisplay.style.color = "orange";
+        } else {
+          coreHealthDisplay.style.color = "#63b3ed";
+        }
+      }
 
-            const prompt = `Given the following nuclear reactor parameters:
+      /**
+       * Updates the visual appearance of the reactor core based on simulation parameters.
+       * Handles normal state, high temperature warning, and melting state.
+       */
+      function updateReactorVisuals() {
+        // Core color and emissive properties based on temperature and melting
+        if (isMelting) {
+          // When melting, become more red/orange and emissive
+          reactorCore.material.color.set(0xff4500); // OrangeRed
+          reactorCore.material.emissive.set(0xff0000); // Red glow
+          reactorCore.material.emissiveIntensity = Math.min(
+            1,
+            ((temperature - CORE_MELTING_POINT) /
+              (MAX_TEMPERATURE - CORE_MELTING_POINT)) *
+              2
+          ); // Intensity increases with temp above melting point
+
+          // Visual degradation for melting (scale down and become transparent as health drops)
+          const degradationFactor = coreHealth / 100; // 1.0 (100% health) to 0.0 (0% health)
+
+          // Scale down the reactor core based on health (min scale 0.1 to avoid disappearing completely)
+          reactorCore.scale.set(
+            Math.max(0.1, degradationFactor),
+            Math.max(0.1, degradationFactor),
+            Math.max(0.1, degradationFactor)
+          );
+          // Adjust position to simulate melting downwards
+          reactorCore.position.y = -(8 * (1 - degradationFactor)) / 2; // Original height is 8, so move by half of melted height
+
+          // Adjust opacity (make it more transparent as it degrades)
+          reactorCore.material.transparent = true;
+          reactorCore.material.opacity = Math.max(0.2, degradationFactor); // Don't go fully invisible
+          reactorCore.material.needsUpdate = true; // Important for material changes to take effect
+        } else {
+          // If not melting, revert to original appearance
+          reactorCore.material.color.copy(originalCoreMaterialColor);
+          reactorCore.material.emissive.copy(originalCoreMaterialEmissive);
+          reactorCore.material.emissiveIntensity = 0; // No glow
+          reactorCore.material.transparent = false;
+          reactorCore.material.opacity = 1;
+          reactorCore.scale.set(1, 1, 1); // Full size
+          reactorCore.position.y = 0; // Reset position
+          reactorCore.material.needsUpdate = true; // Important for material changes to take effect
+
+          // Also subtly change color based on overall temperature even if not melting
+          const tempRatio = (temperature - 25) / (CORE_MELTING_POINT - 25); // 0 to 1 before melting point
+          if (tempRatio > 0) {
+            const warmedColor = new THREE.Color()
+              .copy(originalCoreMaterialColor)
+              .lerp(new THREE.Color(0xd2691e), Math.min(1, tempRatio * 0.5)); // Lerp towards chocolate/brown-orange
+            reactorCore.material.color.copy(warmedColor);
+          }
+        }
+      }
+
+      /**
+       * Calls the Gemini API to get an analysis of the reactor's current status.
+       */
+      async function getReactorAnalysis() {
+        loadingSpinner.style.display = "block"; // Show loading spinner
+        getAnalysisBtn.disabled = true; // Disable button during analysis
+
+        const prompt = `Given the following nuclear reactor parameters:
 - Power Output: ${powerOutput.toFixed(2)} MW
 - Temperature: ${temperature.toFixed(1)} °C
 - Pressure: ${pressure.toFixed(2)} atm
@@ -740,73 +853,80 @@ Identify any immediate concerns or potential risks based on these readings.
 If the reactor is critical or melting, explicitly state the severity.
 Keep the response under 100 words.`;
 
-            let chatHistory = [];
-            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            const payload = { contents: chatHistory };
-            const apiKey = ""; // Canvas will automatically provide the API key at runtime.
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        let chatHistory = [];
+        chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+        const payload = { contents: chatHistory };
+        const apiKey = ""; // Canvas will automatically provide the API key at runtime.
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+        try {
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`API error: ${response.status} - ${errorData.error.message || response.statusText}`);
-                }
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              `API error: ${response.status} - ${
+                errorData.error.message || response.statusText
+              }`
+            );
+          }
 
-                const result = await response.json();
+          const result = await response.json();
 
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    showMessage('AI Analysis: ' + text, 'analysis', 8000); // Display analysis for 8 seconds
-                } else {
-                    showMessage('AI Analysis: Could not retrieve analysis.', 'error');
-                }
-            } catch (error) {
-                console.error('Error fetching AI analysis:', error);
-                showMessage('AI Analysis Error: ' + error.message, 'error', 5000);
-            } finally {
-                loadingSpinner.style.display = 'none'; // Hide loading spinner
-                getAnalysisBtn.disabled = false; // Re-enable button
-            }
+          if (
+            result.candidates &&
+            result.candidates.length > 0 &&
+            result.candidates[0].content &&
+            result.candidates[0].content.parts &&
+            result.candidates[0].content.parts.length > 0
+          ) {
+            const text = result.candidates[0].content.parts[0].text;
+            showMessage("AI Analysis: " + text, "analysis", 8000); // Display analysis for 8 seconds
+          } else {
+            showMessage("AI Analysis: Could not retrieve analysis.", "error");
+          }
+        } catch (error) {
+          console.error("Error fetching AI analysis:", error);
+          showMessage("AI Analysis Error: " + error.message, "error", 5000);
+        } finally {
+          loadingSpinner.style.display = "none"; // Hide loading spinner
+          getAnalysisBtn.disabled = false; // Re-enable button
+        }
+      }
+
+      /**
+       * Main animation loop.
+       * Updates simulation and renders the scene.
+       */
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // Run simulation logic periodically (e.g., every 60 frames)
+        if (performance.now() % 60 < 1) {
+          // Roughly once per second at 60fps
+          simulateReactor();
         }
 
+        // Always update reactor visuals and laser visuals for smooth transitions
+        updateReactorVisuals();
+        updateLasersVisual(); // Keep laser visuals updated even if intensity isn't changing
 
-        /**
-         * Main animation loop.
-         * Updates simulation and renders the scene.
-         */
-        function animate() {
-            requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
 
-            // Run simulation logic periodically (e.g., every 60 frames)
-            if (performance.now() % 60 < 1) { // Roughly once per second at 60fps
-                simulateReactor();
-            }
-
-            // Always update reactor visuals and laser visuals for smooth transitions
-            updateReactorVisuals();
-            updateLasersVisual(); // Keep laser visuals updated even if intensity isn't changing
-
-            renderer.render(scene, camera);
-        }
-
-        // Initialize and start the simulation when the window loads
-        window.onload = function () {
-            init();
-            updateControlRodsVisual(); // Set initial rod position
-            updateLasersVisual(); // Set initial laser appearance
-            updateUI(); // Set initial UI values
-            updateReactorVisuals(); // Set initial visual state
-            animate();
-        };
+      // Initialize and start the simulation when the window loads
+      window.onload = function () {
+        init();
+        updateControlRodsVisual(); // Set initial rod position
+        updateLasersVisual(); // Set initial laser appearance
+        updateUI(); // Set initial UI values
+        updateReactorVisuals(); // Set initial visual state
+        animate();
+      };
     </script>
-</body>
+  </body>
 </html>
-
